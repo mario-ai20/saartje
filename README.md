@@ -1,14 +1,6 @@
-﻿# Saartje AI (Ollama 3.1)
+# Saartje AI
 
-Saartje is een Next.js webapp met:
-- Lokale login met account aanmaken (naam, achternaam, geboortedatum, username, wachtwoord)
-- Chatinterface met linkerkolom (nieuwe chat, recente chats, zoeken)
-- Instellingen voor thema, achtergrond, intro sound, background sound
-- Ouderlijk toezicht
-- AI-persoonlijkheid
-- AI leeftijdsmodus (1, 5, 16, 18+ veilige volwassen toon)
-- Meertalige UI (Nederlands, Frans, Duits, Grieks)
-- Opslag van chats en instellingen in SQLite
+Saartje is een Next.js app met lokale login, chatgeschiedenis, instellingen, achtergrondmuziek en een desktopbuild voor Windows.
 
 ## Vereisten
 
@@ -17,70 +9,73 @@ Saartje is een Next.js webapp met:
 
 ## Installatie
 
-1. Dependencies installeren:
-
 ```bash
 npm install
-```
-
-2. `.env` aanmaken:
-
-```bash
 copy .env.example .env
 ```
 
-3. Vul in `.env`:
+Vul daarna `.env` in met ten minste:
 
 ```env
-NEXTAUTH_SECRET=
+NEXTAUTH_SECRET=een-lange-willekeurige-sleutel
 NEXTAUTH_URL=http://localhost:3000
 OLLAMA_URL=http://127.0.0.1:11434
 OLLAMA_MODEL=llama3.1
 ```
 
-4. Database initialiseren:
+Initialiseer de database:
 
 ```bash
 npm run db:init
-```
-
-5. Prisma client genereren:
-
-```bash
 npm run prisma:generate
 ```
 
-6. Start de app:
+Start de webversie:
 
 ```bash
 npm run dev
 ```
 
-## Media mappen
+Open daarna:
 
-Plaats je bestanden in:
+```text
+http://localhost:3000
+```
+
+## Desktopbuild voor Windows
+
+Saartje kan ook als Windows-app worden verpakt.
+
+Maak eerst het app-icoon:
+
+```bash
+npm run make:icon
+```
+
+Daarna de desktopbuild:
+
+```bash
+npm run desktop:build
+```
+
+De installer komt in:
+
+```text
+dist-electron/Saartje Setup 0.1.0.exe
+```
+
+Dat is het bestand dat je het makkelijkst op itch.io kan uploaden als Windows-download.
+
+## Media-mappen
+
+Plaats eigen bestanden in:
+
 - `public/backgrounds/`
 - `public/intro-music/`
 - `public/background-music/`
 
-Deze bestanden verschijnen automatisch in de instellingen.
+## Belangrijk
 
-## Taal en gedrag
-
-Als je de taal wijzigt in instellingen, verandert de volledige UI-taal mee.
-De systeeminstructie voor Saartje volgt ook de gekozen taal.
-
-## Veiligheidsnota
-
-De 18+ modus gebruikt een volwassen toon, maar blijft veilig en niet-expliciet.
-Als ouderlijk toezicht actief is, wordt risicovolle inhoud extra beperkt.
-
-
-OPSTARTEN:
-maak een map in 't Saam Diksmuide\Mijn Documenten genaamd Codex daar zet je deze map
-DAARNA:
-Opstarten doe je met CMD en daar plak je deze command
-cd "C:\Users\Yoshi.Bastiaenssens\OneDrive - 't Saam Diksmuide\Mijn Documenten\Codex\saartje"
-npm run dev
-hierna kan je hem openen in je browser met deze link:
-http://localhost:3000
+- De desktopbuild gebruikt lokaal een database in de gebruikersmap.
+- Ollama moet nog steeds lokaal beschikbaar zijn voor AI-antwoorden.
+- Wil je later echt een versie zonder lokale installaties, dan moeten we nog een online AI-backend toevoegen.
