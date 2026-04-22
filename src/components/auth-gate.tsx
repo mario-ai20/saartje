@@ -1,0 +1,408 @@
+"use client";
+
+import Image from "next/image";
+import { FormEvent, useState } from "react";
+import { signIn } from "next-auth/react";
+
+type RegisterFormState = {
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  username: string;
+  password: string;
+  passwordConfirm: string;
+};
+
+type LoginFormState = {
+  username: string;
+  password: string;
+};
+
+type AuthView = "home" | "register" | "login";
+
+const logoSrc = "/intro-assets/saartje%20kalebassen.jpg";
+const loginBackgroundSrc = "/inlog-background/background.jpg";
+
+export function AuthGate() {
+  const [view, setView] = useState<AuthView>("home");
+  const [registerForm, setRegisterForm] = useState<RegisterFormState>({
+    firstName: "",
+    lastName: "",
+    birthDate: "",
+    username: "",
+    password: "",
+    passwordConfirm: "",
+  });
+  const [loginForm, setLoginForm] = useState<LoginFormState>({
+    username: "",
+    password: "",
+  });
+  const [registerError, setRegisterError] = useState<string | null>(null);
+  const [registerMessage, setRegisterMessage] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [isRegistering, setIsRegistering] = useState(false);
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
+
+  function goToHome() {
+    setView("home");
+    setRegisterError(null);
+    setRegisterMessage(null);
+    setLoginError(null);
+  }
+
+  async function handleRegister(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setRegisterError(null);
+    setRegisterMessage(null);
+    setLoginError(null);
+
+    const firstName = registerForm.firstName.trim();
+    const lastName = registerForm.lastName.trim();
+    const birthDate = registerForm.birthDate;
+    const username = registerForm.username.trim().toLowerCase();
+    const password = registerForm.password;
+    const passwordConfirm = registerForm.passwordConfirm;
+
+    if (!firstName || !lastName || !birthDate || !username || !password || !passwordConfirm) {
+      setRegisterError("Vul alle verplichte velden in.");
+      return;
+    }
+
+    if (password !== passwordConfirm) {
+      setRegisterError("Wachtwoorden komen niet overeen.");
+      return;
+    }
+
+    setIsRegistering(true);
+
+    try {
+      const response = await fetch("/api/register", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          birthDate,
+          username,
+          password,
+          passwordConfirm,
+        }),
+      });
+
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+
+      if (!response.ok) {
+        setRegisterError(payload?.error ?? "Account aanmaken is mislukt.");
+        return;
+      }
+
+      setRegisterMessage("Account aangemaakt. Bezig met inloggen...");
+
+      const signInResult = await signIn("credentials", {
+        redirect: false,
+        username,
+        password,
+      });
+
+      if (signInResult?.error) {
+        setRegisterMessage("Account aangemaakt. Log nu in met je nieuwe account.");
+        setView("login");
+        setLoginForm({ username, password: "" });
+        return;
+      }
+
+      window.location.reload();
+    } finally {
+      setIsRegistering(false);
+    }
+  }
+
+  async function handleLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setRegisterError(null);
+    setRegisterMessage(null);
+    setLoginError(null);
+
+    const username = loginForm.username.trim().toLowerCase();
+    const password = loginForm.password;
+
+    if (!username || !password) {
+      setLoginError("Vul username en wachtwoord in.");
+      return;
+    }
+
+    setIsLoggingIn(true);
+
+    try {
+      const result = await signIn("credentials", {
+        redirect: false,
+        username,
+        password,
+      });
+
+      if (result?.error) {
+        setLoginError("Onjuiste username of wachtwoord.");
+        return;
+      }
+
+      window.location.reload();
+    } finally {
+      setIsLoggingIn(false);
+    }
+  }
+
+  return (
+    <main
+      className="min-h-screen bg-[#f7f2ed] px-4 py-6 text-[#2f1c1a]"
+      style={{
+        backgroundImage: `linear-gradient(180deg, rgba(16, 20, 35, 0.36), rgba(16, 20, 35, 0.5)), url('${loginBackgroundSrc}')`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }}
+    >
+      <section className="mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-4xl flex-col">
+        <div className="flex flex-1 items-center justify-center">
+          <div className="relative h-56 w-56 overflow-hidden rounded-[2rem] border border-white/70 bg-white/65 p-3 shadow-2xl backdrop-blur-sm sm:h-72 sm:w-72">
+            <Image
+              src={logoSrc}
+              alt="Saartje logo"
+              fill
+              sizes="(max-width: 768px) 240px, 320px"
+              className="object-cover"
+              priority
+            />
+          </div>
+        </div>
+
+        {view === "home" && (
+          <div className="mt-auto grid gap-4 pb-2 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={() => setView("register")}
+              className="rounded-2xl bg-[#df5f35] px-5 py-4 text-xl font-semibold text-white shadow-xl transition hover:bg-[#c9502b]"
+            >
+              Account aanmaken
+            </button>
+            <button
+              type="button"
+              onClick={() => setView("login")}
+              className="rounded-2xl bg-[#1f2937] px-5 py-4 text-xl font-semibold text-white shadow-xl transition hover:bg-[#111827]"
+            >
+              Inloggen
+            </button>
+          </div>
+        )}
+
+        {view === "register" && (
+          <form
+            onSubmit={(event) => {
+              void handleRegister(event);
+            }}
+            className="mt-auto rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl backdrop-blur-sm"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h1 className="font-title text-3xl">Account aanmaken</h1>
+              <button
+                type="button"
+                onClick={goToHome}
+                className="rounded-lg border border-black/20 px-3 py-2 text-sm font-semibold hover:bg-black/5"
+              >
+                Terug
+              </button>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Naam</span>
+                <input
+                  type="text"
+                  required
+                  value={registerForm.firstName}
+                  onChange={(event) =>
+                    setRegisterForm((prev) => ({
+                      ...prev,
+                      firstName: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#df5f35]/40 focus:ring"
+                />
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Achternaam</span>
+                <input
+                  type="text"
+                  required
+                  value={registerForm.lastName}
+                  onChange={(event) =>
+                    setRegisterForm((prev) => ({
+                      ...prev,
+                      lastName: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#df5f35]/40 focus:ring"
+                />
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Geboortedatum</span>
+                <input
+                  type="date"
+                  required
+                  value={registerForm.birthDate}
+                  onChange={(event) =>
+                    setRegisterForm((prev) => ({
+                      ...prev,
+                      birthDate: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#df5f35]/40 focus:ring"
+                />
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Username</span>
+                <input
+                  type="text"
+                  required
+                  value={registerForm.username}
+                  onChange={(event) =>
+                    setRegisterForm((prev) => ({
+                      ...prev,
+                      username: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#df5f35]/40 focus:ring"
+                />
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Wachtwoord</span>
+                <input
+                  type="password"
+                  required
+                  value={registerForm.password}
+                  onChange={(event) =>
+                    setRegisterForm((prev) => ({
+                      ...prev,
+                      password: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#df5f35]/40 focus:ring"
+                />
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Wachtwoord herhalen</span>
+                <input
+                  type="password"
+                  required
+                  value={registerForm.passwordConfirm}
+                  onChange={(event) =>
+                    setRegisterForm((prev) => ({
+                      ...prev,
+                      passwordConfirm: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#df5f35]/40 focus:ring"
+                />
+              </label>
+            </div>
+
+            {registerError && (
+              <p className="mt-3 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {registerError}
+              </p>
+            )}
+
+            {registerMessage && (
+              <p className="mt-3 rounded-xl border border-green-300 bg-green-50 px-3 py-2 text-sm text-green-700">
+                {registerMessage}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isRegistering}
+              className="mt-4 w-full rounded-xl bg-[#df5f35] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#c9502b] disabled:cursor-not-allowed disabled:bg-[#e7a08a]"
+            >
+              {isRegistering ? "Account aanmaken..." : "Account aanmaken"}
+            </button>
+          </form>
+        )}
+
+        {view === "login" && (
+          <form
+            onSubmit={(event) => {
+              void handleLogin(event);
+            }}
+            className="mt-auto rounded-3xl border border-white/70 bg-white/90 p-6 shadow-2xl backdrop-blur-sm"
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-title text-3xl">Inloggen</h2>
+              <button
+                type="button"
+                onClick={goToHome}
+                className="rounded-lg border border-black/20 px-3 py-2 text-sm font-semibold hover:bg-black/5"
+              >
+                Terug
+              </button>
+            </div>
+
+            <div className="grid gap-3">
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Username</span>
+                <input
+                  type="text"
+                  required
+                  value={loginForm.username}
+                  onChange={(event) =>
+                    setLoginForm((prev) => ({
+                      ...prev,
+                      username: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#1f2937]/35 focus:ring"
+                />
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Wachtwoord</span>
+                <input
+                  type="password"
+                  required
+                  value={loginForm.password}
+                  onChange={(event) =>
+                    setLoginForm((prev) => ({
+                      ...prev,
+                      password: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#1f2937]/35 focus:ring"
+                />
+              </label>
+            </div>
+
+            {loginError && (
+              <p className="mt-3 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {loginError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isLoggingIn}
+              className="mt-4 w-full rounded-xl bg-[#1f2937] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#111827] disabled:cursor-not-allowed disabled:bg-[#4b5563]"
+            >
+              {isLoggingIn ? "Inloggen..." : "Inloggen"}
+            </button>
+          </form>
+        )}
+      </section>
+    </main>
+  );
+}
