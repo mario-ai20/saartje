@@ -1,36 +1,44 @@
-﻿# Feline AI
+# Feline
 
-Feline is a Next.js web app with local accounts, separate chats, per-account settings, backgrounds, sounds and NSFW+ separation.
-Discord name: `Felinefoil`
+Feline is een lokale Next.js-app met accounts, aparte chats, instellingen per gebruiker, achtergronden, geluiden en NSFW+-scheiding.
 
-## What Feline needs
+Discordnaam: `Felinefoil`
 
-For local use on your own PC:
+## Wat heb je nodig
 
-- [Git](https://git-scm.com/) to clone the repository
-- [Git LFS](https://git-lfs.com/) so the media files download correctly
-- [Node.js 20 or newer](https://nodejs.org/)
-- [Ollama](https://ollama.com/) running locally on `http://127.0.0.1:11434`
-- A modern browser
-- Camera access if you want to use NSFW+ age verification
-- Microphone access if you want to use intro or sound features in the browser
+Voor gebruik op je eigen pc:
 
-Feline is local-first by default.
-- `127.0.0.1` only works on your own machine.
-- Every person who runs Feline locally needs their own Ollama, Node.js and browser setup.
-- This repo does not require Docker.
+- [Git](https://git-scm.com/) om de repository te klonen
+- [Git LFS](https://git-lfs.com/) zodat de mediabestanden juist worden opgehaald
+- [Node.js 20 of nieuwer](https://nodejs.org/)
+- [Ollama](https://ollama.com/) die lokaal draait op `http://127.0.0.1:11434`
+- Een recente browser
+- Camera-toegang als je NSFW+-leeftijdsverificatie gebruikt
+- Microfoon-toegang als je intro- of achtergrondgeluiden in de browser wil gebruiken
 
-## Quick start
+Feline is standaard alleen voor lokaal gebruik.
+
+- `127.0.0.1` werkt enkel op jouw eigen computer
+- Iedereen die Feline gebruikt, heeft dus zijn eigen lokale setup nodig
+- Er is geen Docker nodig
+
+## Installeren
+
+Kloon eerst de repository en installeer Git LFS één keer:
 
 ```bash
+git clone https://github.com/mario-ai20/Feline.git
+cd Feline
 git lfs install
 npm install
 copy .env.example .env
 ```
 
-If you clone this repo on a new machine, run `git lfs install` once before pulling so the MP3 and MP4 files download properly.
+Als je de repo op een nieuwe computer zet, voer `git lfs install` dan zeker opnieuw uit voordat je de bestanden ophaalt.
 
-Fill in `.env` with at least:
+## Instellingen in `.env`
+
+Vul minstens deze waarden in:
 
 ```env
 DATABASE_URL="file:./dev.db"
@@ -40,52 +48,52 @@ OLLAMA_URL="http://127.0.0.1:11434"
 OLLAMA_MODEL="llama3.1"
 ```
 
-Initialize the database:
+## Database klaarzetten
 
 ```bash
 npm run db:init
 npm run prisma:generate
 ```
 
-Start the app:
+## Opstarten
 
 ```bash
 npm run dev
 ```
 
-Or double click `start-feline.bat` in the project folder. It starts the server and opens the browser automatically.
+Of dubbelklik op `start-feline.bat` in de projectmap. Dat start de server en opent de browser automatisch.
 
-Then open:
+Open daarna:
 
 ```text
 http://localhost:3000
 ```
 
-## What users can do
+## Wat je kan doen
 
-- Create a local account with name, last name, birth date, username and password
-- Keep chats and settings per account
-- Use separate normal and NSFW+ chat spaces
-- Choose backgrounds, login backgrounds, intro sounds and background sounds per account
-- Use folder-based media categories in `public/backgrounds/`
-- Save memory and adult-memory settings per account
+- Een lokaal account maken met naam, achternaam, geboortedatum, username en wachtwoord
+- Chats en instellingen per account bewaren
+- Normale chats en NSFW+-chats apart gebruiken
+- Achtergronden, inlog-achtergronden, intro-geluiden en achtergrondgeluiden per account kiezen
+- Media automatisch indelen per map in `public/backgrounds/`
+- Geheugen- en volwassen-geheugeninstellingen per account opslaan
 
-## Media folders
+## Mediavamappen
 
-Put your own files in these folders:
+Zet je eigen bestanden in deze mappen:
 
-- `public/backgrounds/` for normal backgrounds
-- `public/backgrounds/nsfw/` for NSFW-only backgrounds
-- `public/inlog-background/` for login backgrounds
-- `public/intro-music/` for intro sounds
-- `public/background-music/` for background sounds
-- `public/intro-assets/` for the fixed Feline logo and intro art
+- `public/backgrounds/` voor normale achtergronden
+- `public/backgrounds/nsfw/` voor NSFW-achtergronden
+- `public/inlog-background/` voor inlog-achtergronden
+- `public/intro-music/` voor intro-geluiden
+- `public/background-music/` voor achtergrondgeluiden
+- `public/intro-assets/` voor het vaste Feline-logo en intro-afbeeldingen
 
-The larger MP3 and MP4 files are stored with Git LFS so the repository stays easier to share and clone.
+De grotere MP3- en MP4-bestanden staan met Git LFS in de repository, zodat alles vlotter te klonen blijft.
 
-Background folders are grouped by folder name. For example, everything inside `public/backgrounds/Intens/` appears together as the `Intens` category.
+Mappen onder `public/backgrounds/` worden automatisch gegroepeerd per mapnaam. Alles in `public/backgrounds/Intens/` verschijnt dus samen als categorie `Intens`.
 
-Login backgrounds can be images or videos:
+Inlog-achtergronden mogen deze bestanden zijn:
 
 - `.mp4`
 - `.webm`
@@ -95,16 +103,16 @@ Login backgrounds can be images or videos:
 - `.png`
 - `.webp`
 
-## Settings behavior
+## Gedrag van de instellingen
 
-- Settings are saved per account.
-- Press `Opslaan` to keep changes.
-- Backgrounds and sounds stay tied to your account until you change them again.
-- New media files are picked up when you reopen settings or refresh the media list.
-- The app logo/tab icon is fixed to Feline.
-- There is no separate profile-icon picker in settings anymore.
+- Instellingen worden per account opgeslagen.
+- Druk op `Opslaan` om wijzigingen echt te bewaren.
+- Achtergronden en geluiden blijven gekoppeld aan je account tot je ze zelf verandert.
+- Nieuwe mediabestanden verschijnen zodra je de instellingen opnieuw opent of de mediastlijst vernieuwt.
+- Het app-logo en tab-icoon staan vast op Feline.
+- Er is geen aparte profielicoon-keuze meer in de instellingen.
 
-## Useful scripts
+## Handige scripts
 
 ```bash
 npm run lint
@@ -114,10 +122,9 @@ npm run prisma:studio
 npm run db:init
 ```
 
-## Notes
+## Opmerking
 
-- Chats are separated into normal and NSFW+ spaces.
-- NSFW+ needs age verification.
-- The app uses Ollama for local AI responses.
-- Database and settings are stored with Prisma and SQLite by default.
-- No Docker setup is required for normal use.
+- Chats zijn opgesplitst in normale en NSFW+-ruimtes.
+- NSFW+ heeft leeftijdsverificatie nodig.
+- Feline gebruikt Ollama voor lokale AI-antwoorden.
+- De database en instellingen worden standaard opgeslagen met Prisma en SQLite.
