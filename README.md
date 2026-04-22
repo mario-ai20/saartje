@@ -1,11 +1,11 @@
 # Saartje AI
 
-Saartje is een Next.js app met lokale login, chatgeschiedenis, instellingen, achtergrondmuziek en een desktopbuild voor Windows.
+Saartje is een Next.js webapp met lokale login, chatgeschiedenis, instellingen en media-ondersteuning.
 
 ## Vereisten
 
 - Node.js 20+
-- Ollama lokaal geïnstalleerd en draaiend
+- Een online host voor publicatie, zoals Vercel, Render of een eigen server
 
 ## Installatie
 
@@ -42,29 +42,16 @@ Open daarna:
 http://localhost:3000
 ```
 
-## Desktopbuild voor Windows
+## Online zetten
 
-Saartje kan ook als Windows-app worden verpakt.
+Voor een openbare website moet je de app hosten op een platform met een draaiende Node-server en een database.
 
-Maak eerst het app-icoon:
+Makkelijke route:
 
-```bash
-npm run make:icon
-```
-
-Daarna de desktopbuild:
-
-```bash
-npm run desktop:build
-```
-
-De installer komt in:
-
-```text
-dist-electron/Saartje Setup 0.1.0.exe
-```
-
-Dat is het bestand dat je het makkelijkst op itch.io kan uploaden als Windows-download.
+1. Zet de code op GitHub.
+2. Koppel de repo aan je host.
+3. Vul je environment variables in.
+4. Laat de host de app bouwen en publiceren.
 
 ## Media-mappen
 
@@ -73,9 +60,3 @@ Plaats eigen bestanden in:
 - `public/backgrounds/`
 - `public/intro-music/`
 - `public/background-music/`
-
-## Belangrijk
-
-- De desktopbuild gebruikt lokaal een database in de gebruikersmap.
-- Ollama moet nog steeds lokaal beschikbaar zijn voor AI-antwoorden.
-- Wil je later echt een versie zonder lokale installaties, dan moeten we nog een online AI-backend toevoegen.

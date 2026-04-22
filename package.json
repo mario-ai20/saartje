@@ -2,16 +2,12 @@
   "name": "saartje",
   "version": "0.1.0",
   "private": true,
-  "description": "Saartje AI desktop and web app",
+  "description": "Saartje AI web app",
   "author": "Mattiz Hoornaert",
-  "main": "electron/main.mjs",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "desktop:dev": "concurrently -k \"npm run dev\" \"wait-on http://127.0.0.1:3000 && electron .\"",
-    "desktop:build": "npm run build && electron-builder",
-    "make:icon": "node scripts/make-desktop-icon.mjs",
     "lint": "eslint",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev",
@@ -31,46 +27,10 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "concurrently": "^9.2.1",
-    "electron": "^35.1.5",
-    "electron-builder": "^26.0.12",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
     "prisma": "^6.19.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "wait-on": "^8.0.1"
-  },
-  "build": {
-    "appId": "com.saartje.app",
-    "productName": "Saartje",
-    "directories": {
-      "output": "dist-electron"
-    },
-    "files": [
-      "electron/**/*",
-      "src/**/*",
-      "public/**/*",
-      "prisma/**/*",
-      "scripts/**/*",
-      ".next/**/*",
-      "package.json",
-      "next.config.ts",
-      "postcss.config.mjs",
-      "tsconfig.json",
-      "eslint.config.mjs",
-      "README.md",
-      ".env.example",
-      "AGENTS.md",
-      "CLAUDE.md"
-    ],
-    "asarUnpack": [
-      "**/node_modules/.prisma/**",
-      "**/node_modules/@prisma/**"
-    ],
-    "win": {
-      "target": "nsis",
-      "icon": "public/intro-assets/saartje-desktop-icon.png"
-    }
+    "typescript": "^5"
   }
 }
