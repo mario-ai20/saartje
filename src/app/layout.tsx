@@ -2,8 +2,8 @@
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Feline AI",
-  description: "Feline op Ollama 3.1 met login, chats en instellingen.",
+  title: "Feline",
+  description: "Feline met login, chats, instellingen en lokale Ollama-ondersteuning.",
   icons: {
     icon: "/intro-assets/feline%20kalebassen.ico",
     shortcut: "/intro-assets/feline%20kalebassen.ico",

@@ -147,7 +147,7 @@ export function AuthGate() {
       const payload = (await response.json().catch(() => null)) as { error?: string } | null;
 
       if (!response.ok) {
-        setRegisterError(payload?.error ?? "Account aanmaken is mislukt.");
+        setRegisterError(payload?.error ?? "Het aanmaken van het account is mislukt.");
         return;
       }
 
@@ -183,7 +183,7 @@ export function AuthGate() {
     const password = loginForm.password;
 
     if (!username || !password) {
-      setLoginError("Vul username en wachtwoord in.");
+      setLoginError("Vul gebruikersnaam en wachtwoord in.");
       return;
     }
 
@@ -197,7 +197,7 @@ export function AuthGate() {
       });
 
       if (result?.error) {
-        setLoginError("Onjuiste username of wachtwoord.");
+        setLoginError("Onjuiste gebruikersnaam of wachtwoord.");
         return;
       }
 
@@ -333,7 +333,7 @@ export function AuthGate() {
               </label>
 
               <label className="text-sm">
-                <span className="mb-1 block font-semibold">Username</span>
+                <span className="mb-1 block font-semibold">Gebruikersnaam</span>
                 <input
                   type="text"
                   required
@@ -423,7 +423,7 @@ export function AuthGate() {
 
             <div className="grid gap-3">
               <label className="text-sm">
-                <span className="mb-1 block font-semibold">Username</span>
+                <span className="mb-1 block font-semibold">Gebruikersnaam</span>
                 <input
                   type="text"
                   required
