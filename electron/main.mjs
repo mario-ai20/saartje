@@ -29,10 +29,13 @@ function ensureDatabaseUrl() {
 
 async function startNextServer() {
   const { default: next } = await import("next");
+  const { initDatabase } = await import("../scripts/init-db.mjs");
 
   if (!process.env.DATABASE_URL || process.env.DATABASE_URL.startsWith("file:./")) {
     process.env.DATABASE_URL = ensureDatabaseUrl();
   }
+
+  initDatabase(process.env.DATABASE_URL.replace(/^file:/, ""));
 
   if (!process.env.NEXTAUTH_SECRET || process.env.NEXTAUTH_SECRET.includes("vervang-dit")) {
     process.env.NEXTAUTH_SECRET = ensureSecretFile();

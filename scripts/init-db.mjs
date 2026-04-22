@@ -1,16 +1,8 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import path from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-const dbDir = path.join(process.cwd(), "prisma");
-const dbPath = path.join(dbDir, "dev.db");
-
-fs.mkdirSync(dbDir, { recursive: true });
-
-const db = new DatabaseSync(dbPath);
-db.exec("PRAGMA foreign_keys = ON;");
-
-db.exec(`
+const schemaSql = `
 CREATE TABLE IF NOT EXISTS "User" (
   "id" TEXT NOT NULL PRIMARY KEY,
   "firstName" TEXT,
@@ -108,6 +100,20 @@ CREATE TABLE IF NOT EXISTS "VerificationToken" (
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS "VerificationToken_token_key" ON "VerificationToken"("token");
-`);
+`;
 
-console.log(`Database initialized at ${dbPath}`);
+export function initDatabase(dbPath) {
+  const resolvedDbPath = path.resolve(dbPath);
+  fs.mkdirSync(path.dirname(resolvedDbPath), { recursive: true });
+  const db = new DatabaseSync(resolvedDbPath);
+  db.exec("PRAGMA foreign_keys = ON;");
+  db.exec(schemaSql);
+  return resolvedDbPath;
+}
+
+if (import.meta.url === `file://${process.argv[1]}`) {
+  const dbDir = path.join(process.cwd(), "prisma");
+  const dbPath = path.join(dbDir, "dev.db");
+  const result = initDatabase(dbPath);
+  console.log(`Database initialized at ${result}`);
+}
