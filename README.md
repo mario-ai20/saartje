@@ -10,6 +10,7 @@ For local use on your own PC:
 - Node.js 20 or newer
 - Ollama running locally on `http://127.0.0.1:11434`
 - A modern browser
+- Git LFS (`git lfs install`) so the media files download correctly
 - Camera access if you want to use NSFW+ age verification
 - Microphone access if you want to use intro or sound features in the browser
 
@@ -29,9 +30,12 @@ Important:
 ## Quick start
 
 ```bash
+git lfs install
 npm install
 copy .env.example .env
 ```
+
+If you clone this repo on a new machine, run `git lfs install` once before pulling so the MP3 and MP4 files download properly.
 
 Fill in `.env` with at least:
 
@@ -83,6 +87,8 @@ Put your own files in these folders:
 - `public/intro-music/` for intro sounds
 - `public/background-music/` for background sounds
 - `public/intro-assets/` for the fixed Feline logo and intro art
+
+The larger MP3 and MP4 files are stored with Git LFS so the repository stays easier to share and clone.
 
 Background folders are grouped by folder name. For example, everything inside `public/backgrounds/Intens/` appears together as the `Intens` category.
 
