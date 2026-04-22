@@ -1,24 +1,23 @@
-import { getServerSession } from "next-auth/next";
 import { AuthGate } from "@/components/auth-gate";
 import { ChatShell } from "@/components/chat-shell";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { ensureUserSettings, listMediaFiles } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
+  const currentUser = await getAuthenticatedUser();
 
-  if (!session?.user?.id) {
+  if (!currentUser) {
     return <AuthGate />;
   }
 
-  const settings = await ensureUserSettings(session.user.id);
+  const settings = await ensureUserSettings(currentUser.id);
 
   const [threads, backgrounds, introSounds, backgroundSounds] = await Promise.all([
     prisma.chatThread.findMany({
-      where: { userId: session.user.id },
+      where: { userId: currentUser.id },
       orderBy: { updatedAt: "desc" },
       take: 40,
       select: {
@@ -54,9 +53,9 @@ export default async function HomePage() {
       })
     : [];
 
-  return (
+      return (
     <ChatShell
-      userName={session.user.name ?? null}
+      userName={currentUser.name ?? null}
       initialThreads={threads.map((thread) => ({
         id: thread.id,
         title: thread.title,

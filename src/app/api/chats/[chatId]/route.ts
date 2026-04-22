@@ -1,6 +1,5 @@
-﻿import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
@@ -13,8 +12,8 @@ export async function GET(
   _request: Request,
   context: RouteContext<"/api/chats/[chatId]">,
 ) {
-  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
-  if (!session?.user?.id) {
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser) {
     return unauthorized();
   }
 
@@ -23,7 +22,7 @@ export async function GET(
   const thread = await prisma.chatThread.findFirst({
     where: {
       id: chatId,
-      userId: session.user.id,
+      userId: currentUser.id,
     },
     include: {
       messages: {
@@ -49,8 +48,8 @@ export async function DELETE(
   _request: Request,
   context: RouteContext<"/api/chats/[chatId]">,
 ) {
-  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
-  if (!session?.user?.id) {
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser) {
     return unauthorized();
   }
 
@@ -59,7 +58,7 @@ export async function DELETE(
   const existing = await prisma.chatThread.findFirst({
     where: {
       id: chatId,
-      userId: session.user.id,
+      userId: currentUser.id,
     },
     select: {
       id: true,
@@ -76,8 +75,3 @@ export async function DELETE(
 
   return NextResponse.json({ ok: true });
 }
-
-
-
-
-

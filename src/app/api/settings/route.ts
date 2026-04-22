@@ -1,6 +1,5 @@
-﻿import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
   ensureUserSettings,
@@ -42,12 +41,12 @@ function sameCalendarDate(a: Date, b: Date): boolean {
 }
 
 export async function GET() {
-  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
-  if (!session?.user?.id) {
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser) {
     return unauthorized();
   }
 
-  const settings = await ensureUserSettings(session.user.id);
+  const settings = await ensureUserSettings(currentUser.id);
   const [backgrounds, introSounds, backgroundSounds] = await Promise.all([
     listMediaFiles("backgrounds"),
     listMediaFiles("intro-music"),
@@ -65,15 +64,15 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
-  if (!session?.user?.id) {
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser) {
     return unauthorized();
   }
 
   const input = (await request.json()) as Record<string, unknown>;
-  const existing = await ensureUserSettings(session.user.id);
+  const existing = await ensureUserSettings(currentUser.id);
   const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
+    where: { id: currentUser.id },
     select: { birthDate: true },
   });
 
@@ -150,9 +149,9 @@ export async function PUT(request: Request) {
   }
 
   const settings = await prisma.userSettings.upsert({
-    where: { userId: session.user.id },
+    where: { userId: currentUser.id },
     create: {
-      userId: session.user.id,
+      userId: currentUser.id,
       ...clean,
     },
     update: clean,
@@ -160,8 +159,3 @@ export async function PUT(request: Request) {
 
   return NextResponse.json({ settings });
 }
-
-
-
-
-

@@ -1,4 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
+import { getServerSession } from "next-auth/next";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
@@ -79,3 +80,28 @@ export const authOptions: NextAuthOptions = {
     },
   },
 };
+
+export async function getAuthenticatedUser() {
+  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
+  const userId = session?.user?.id;
+  if (!userId) {
+    return null;
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!user) {
+    return null;
+  }
+
+  return {
+    id: user.id,
+    name: user.name ?? session.user?.name ?? null,
+  };
+}

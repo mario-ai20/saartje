@@ -1,6 +1,5 @@
-﻿import { getServerSession } from "next-auth/next";
 import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { getDefaultChatTitle } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { ensureUserSettings } from "@/lib/settings";
@@ -12,8 +11,8 @@ function unauthorized() {
 }
 
 export async function GET(request: Request) {
-  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
-  if (!session?.user?.id) {
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser) {
     return unauthorized();
   }
 
@@ -22,7 +21,7 @@ export async function GET(request: Request) {
 
   const threads = await prisma.chatThread.findMany({
     where: {
-      userId: session.user.id,
+      userId: currentUser.id,
       ...(query
         ? {
             OR: [
@@ -65,16 +64,16 @@ export async function GET(request: Request) {
 }
 
 export async function POST() {
-  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
-  if (!session?.user?.id) {
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser) {
     return unauthorized();
   }
 
-  const settings = await ensureUserSettings(session.user.id);
+  const settings = await ensureUserSettings(currentUser.id);
 
   const thread = await prisma.chatThread.create({
     data: {
-      userId: session.user.id,
+      userId: currentUser.id,
       title: getDefaultChatTitle(settings.language),
     },
     select: {
@@ -86,8 +85,3 @@ export async function POST() {
 
   return NextResponse.json({ thread }, { status: 201 });
 }
-
-
-
-
-

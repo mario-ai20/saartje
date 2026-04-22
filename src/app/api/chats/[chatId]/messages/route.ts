@@ -1,6 +1,5 @@
-﻿import { getServerSession } from "next-auth/next";
-import { NextResponse } from "next/server";
-import { authOptions } from "@/lib/auth";
+﻿import { NextResponse } from "next/server";
+import { getAuthenticatedUser } from "@/lib/auth";
 import { buildSystemPrompt, getDefaultChatTitle, getDictionary } from "@/lib/i18n";
 import { prisma } from "@/lib/prisma";
 import { ensureUserSettings } from "@/lib/settings";
@@ -98,10 +97,10 @@ function isConflictMessage(text: string): boolean {
 }
 
 function getStubbornReply(language: "NL" | "FR" | "DE" | "EL"): string {
-  if (language === "FR") return "Je suis fachee. Dis d'abord \"sorry\" ou \"desole\" et ensuite je reparle.";
-  if (language === "DE") return "Ich bin beleidigt. Sag zuerst \"sorry\", dann rede ich wieder mit dir.";
-  if (language === "EL") return "Eimai peiragmeni. Pes prwta \"sorry\" kai meta tha sou miliso.";
-  return "Ik ben nu boos en koppig. Zeg eerst \"sorry\", dan praat ik weer met je.";
+  if (language === "FR") return 'Je suis fachee. Dis d\'abord "sorry" ou "desole" et ensuite je reparle.';
+  if (language === "DE") return 'Ich bin beleidigt. Sag zuerst "sorry", dann rede ich wieder mit dir.';
+  if (language === "EL") return 'Eimai peiragmeni. Pes prwta "sorry" kai meta tha sou miliso.';
+  return 'Ik ben nu boos en koppig. Zeg eerst "sorry", dan praat ik weer met je.';
 }
 
 function getApologyAcceptedReply(language: "NL" | "FR" | "DE" | "EL"): string {
@@ -132,8 +131,8 @@ export async function POST(
   request: Request,
   context: RouteContext<"/api/chats/[chatId]/messages">,
 ) {
-  const session = (await getServerSession(authOptions as never)) as { user?: { id?: string; name?: string | null } } | null;
-  if (!session?.user?.id) {
+  const currentUser = await getAuthenticatedUser();
+  if (!currentUser) {
     return unauthorized();
   }
 
@@ -148,7 +147,7 @@ export async function POST(
   const thread = await prisma.chatThread.findFirst({
     where: {
       id: chatId,
-      userId: session.user.id,
+      userId: currentUser.id,
     },
     select: {
       id: true,
@@ -165,7 +164,7 @@ export async function POST(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const settings = await ensureUserSettings(session.user.id);
+  const settings = await ensureUserSettings(currentUser.id);
   let activeSettings = settings;
 
   async function saveAssistantAndRespond(text: string, language: "NL" | "FR" | "DE" | "EL") {
@@ -202,7 +201,7 @@ export async function POST(
   if (activeSettings.isUpset) {
     if (isApologyMessage(content)) {
       activeSettings = await prisma.userSettings.update({
-        where: { userId: session.user.id },
+        where: { userId: currentUser.id },
         data: { isUpset: false },
       });
 
@@ -214,7 +213,7 @@ export async function POST(
 
   if (isConflictMessage(content)) {
     activeSettings = await prisma.userSettings.update({
-      where: { userId: session.user.id },
+      where: { userId: currentUser.id },
       data: { isUpset: true },
     });
 
@@ -231,7 +230,7 @@ export async function POST(
 
       if (mergedNotes !== activeSettings.memoryNotes) {
         activeSettings = await prisma.userSettings.update({
-          where: { userId: session.user.id },
+          where: { userId: currentUser.id },
           data: { memoryNotes: mergedNotes },
         });
       }
@@ -292,11 +291,11 @@ export async function POST(
   } catch {
     assistantText =
       activeSettings.language === "FR"
-        ? "Je ne peux pas joindre Ollama maintenant. Vérifie si Ollama est actif."
+        ? "Je ne peux pas joindre Ollama maintenant. Verifie si Ollama est actif."
         : activeSettings.language === "DE"
-          ? "Ich kann Ollama gerade nicht erreichen. Prüfe, ob Ollama läuft."
+          ? "Ich kann Ollama gerade nicht erreichen. Prufe, ob Ollama lauft."
           : activeSettings.language === "EL"
-            ? "?e? µp??? ?a s??de?? µe t? Ollama t??a. ??e??e a? t???e?."
+            ? "Den mporo na sundeso me to Ollama twra. Elegkse an trexei."
             : "Ik kan Ollama nu niet bereiken. Controleer of Ollama draait.";
   }
 
@@ -332,8 +331,3 @@ export async function POST(
     toast: dictionary.saved,
   });
 }
-
-
-
-
-
