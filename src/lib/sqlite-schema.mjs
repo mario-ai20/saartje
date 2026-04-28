@@ -150,6 +150,30 @@ function hasRequiredTables(dbPath) {
   }
 }
 
+function hasUserData(dbPath) {
+  if (!fs.existsSync(dbPath)) {
+    return false;
+  }
+
+  try {
+    const db = new DatabaseSync(dbPath);
+    const row = db
+      .prepare(
+        `
+        SELECT
+          (SELECT COUNT(*) FROM "User") +
+          (SELECT COUNT(*) FROM "ChatThread") +
+          (SELECT COUNT(*) FROM "UserSettings") AS total
+      `,
+      )
+      .get();
+    db.close();
+    return Number(row?.total ?? 0) > 0;
+  } catch {
+    return false;
+  }
+}
+
 function legacyDatabasePath() {
   return path.resolve(process.cwd(), "dev.db");
 }
@@ -161,11 +185,11 @@ function migrateLegacyDatabaseIfNeeded(targetDbPath) {
     return;
   }
 
-  if (hasRequiredTables(targetDbPath)) {
+  if (hasUserData(targetDbPath)) {
     return;
   }
 
-  if (hasRequiredTables(legacyDbPath)) {
+  if (hasRequiredTables(legacyDbPath) && hasUserData(legacyDbPath)) {
     fs.mkdirSync(path.dirname(targetDbPath), { recursive: true });
     fs.copyFileSync(legacyDbPath, targetDbPath);
   }

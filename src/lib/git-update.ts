@@ -147,14 +147,14 @@ async function readRepositoryStatus(): Promise<GitUpdateStatus> {
         behind,
         ahead,
         dirty,
-        canUpdate: behind > 0 && ahead === 0 && !dirty,
+        canUpdate: behind > 0,
         reason: dirty
-          ? "Je werkmap heeft lokale wijzigingen. Commit of stash eerst."
+          ? "Lokale wijzigingen worden tijdens de update tijdelijk veiliggesteld."
           : ahead > 0
-            ? "Je zit lokaal voor op GitHub. Pullen kan nu niet veilig."
-          : behind > 0
-            ? null
-            : "Je zit al op de nieuwste versie.",
+            ? "Je zit lokaal voor op GitHub."
+            : behind > 0
+              ? null
+              : "Je zit al op de nieuwste versie.",
       };
     } catch {
       return {
@@ -195,21 +195,63 @@ export async function pullLatestGitChanges(): Promise<{ status: GitUpdateStatus;
     throw new Error(status.reason ?? "Git is niet beschikbaar.");
   }
 
-  if (status.dirty) {
-    throw new Error("Je werkmap heeft lokale wijzigingen. Commit of stash eerst.");
-  }
-
   if (status.behind <= 0) {
     return { status, output: "Je zit al op de nieuwste versie." };
   }
 
   const branch = status.branch ?? "main";
   const backupPath = await createLocalBackup();
-  const output = await runGit(["pull", "--ff-only", "origin", branch]);
+  const hadLocalChanges = status.dirty;
+  const restoreMessages: string[] = [];
+
+  if (hadLocalChanges) {
+    await runGit([
+      "stash",
+      "push",
+      "--include-untracked",
+      "--message",
+      `feline-update-${new Date().toISOString()}`,
+    ]);
+  }
+
+  let pullOutput = "";
+
+  try {
+    pullOutput = await runGit(["pull", "--rebase", "origin", branch]);
+  } catch (error) {
+    if (hadLocalChanges) {
+      try {
+        await runGit(["stash", "apply", "--index"]);
+        restoreMessages.push("Lokale wijzigingen zijn teruggezet.");
+      } catch {
+        restoreMessages.push("Lokale wijzigingen zijn veilig bewaard in git stash.");
+      }
+    }
+
+    throw error;
+  }
+
+  if (hadLocalChanges) {
+    try {
+      await runGit(["stash", "apply", "--index"]);
+      await runGit(["stash", "drop"]);
+      restoreMessages.push("Lokale wijzigingen zijn teruggezet.");
+    } catch {
+      restoreMessages.push("Lokale wijzigingen zijn veilig bewaard in git stash.");
+    }
+  }
+
   const updated = await readRepositoryStatus();
 
   return {
     status: updated,
-    output: `${output || "Update voltooid."}${backupPath ? ` Lokale backup bewaard in ${backupPath}.` : ""}`,
+    output: [
+      pullOutput || "Update voltooid.",
+      hadLocalChanges ? "Lokale wijzigingen zijn tijdelijk veiliggesteld." : null,
+      ...restoreMessages,
+      backupPath ? `Lokale backup bewaard in ${backupPath}.` : null,
+    ]
+      .filter(Boolean)
+      .join(" "),
   };
 }

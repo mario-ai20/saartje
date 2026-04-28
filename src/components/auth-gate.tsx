@@ -500,11 +500,14 @@ export function AuthGate() {
                 {gitUpdateLoading ? "Controleren..." : "Update vanuit GitHub"}
               </button>
               {gitUpdateStatus && (
-                <span className="max-w-[11rem] rounded-lg bg-white/90 px-2 py-1 text-[11px] text-black/60 shadow">
-                  {gitUpdateStatus.behind > 0
-                    ? `${gitUpdateStatus.behind} update(s) klaar`
-                    : "Up-to-date"}
-                </span>
+                <div className="max-w-[11rem] rounded-lg bg-white/90 px-2 py-1 text-[11px] text-black/60 shadow">
+                  <span className="block">
+                    {gitUpdateStatus.behind > 0
+                      ? `${gitUpdateStatus.behind} update(s) klaar`
+                      : "Bijgewerkt"}
+                  </span>
+                  {gitUpdateStatus.reason && <span className="mt-0.5 block text-black/50">{gitUpdateStatus.reason}</span>}
+                </div>
               )}
               {gitUpdateMessage && <span className="max-w-[11rem] text-[11px] text-emerald-700">{gitUpdateMessage}</span>}
               {gitUpdateError && <span className="max-w-[11rem] text-[11px] text-red-700">{gitUpdateError}</span>}
@@ -590,11 +593,14 @@ export function AuthGate() {
                 {gitUpdateLoading ? "Bezig..." : "Update vanuit GitHub"}
               </button>
               {gitUpdateStatus && (
-                <span className="max-w-[11rem] rounded-lg bg-white/90 px-2 py-1 text-[11px] text-black/60 shadow">
-                  {gitUpdateStatus.behind > 0
-                    ? `${gitUpdateStatus.behind} update(s) klaar`
-                    : "Up-to-date"}
-                </span>
+                <div className="max-w-[11rem] rounded-lg bg-white/90 px-2 py-1 text-[11px] text-black/60 shadow">
+                  <span className="block">
+                    {gitUpdateStatus.behind > 0
+                      ? `${gitUpdateStatus.behind} update(s) klaar`
+                      : "Bijgewerkt"}
+                  </span>
+                  {gitUpdateStatus.reason && <span className="mt-0.5 block text-black/50">{gitUpdateStatus.reason}</span>}
+                </div>
               )}
               {gitUpdateMessage && <span className="max-w-[11rem] text-[11px] text-emerald-700">{gitUpdateMessage}</span>}
               {gitUpdateError && <span className="max-w-[11rem] text-[11px] text-red-700">{gitUpdateError}</span>}
