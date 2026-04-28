@@ -116,11 +116,59 @@ export function getConfiguredDatabaseUrl(databaseUrl = process.env.DATABASE_URL)
 export function getDatabasePathFromUrl(databaseUrl = getConfiguredDatabaseUrl()) {
   const cleaned = databaseUrl?.trim() || DEFAULT_DATABASE_URL;
   const rawPath = cleaned.startsWith("file:") ? cleaned.slice("file:".length) : "";
-  return rawPath
-    ? path.isAbsolute(rawPath)
-      ? rawPath
-      : path.resolve(process.cwd(), rawPath)
-    : path.resolve(process.cwd(), "dev.db");
+  if (!rawPath) {
+    return path.resolve(process.cwd(), "prisma", "dev.db");
+  }
+
+  if (path.isAbsolute(rawPath)) {
+    return rawPath;
+  }
+
+  const normalized = rawPath.replace(/^[.][/\\]/, "");
+  if (normalized === "prisma" || normalized.startsWith(`prisma${path.sep}`)) {
+    return path.resolve(process.cwd(), normalized);
+  }
+
+  return path.resolve(process.cwd(), "prisma", normalized);
+}
+
+function hasRequiredTables(dbPath) {
+  if (!fs.existsSync(dbPath)) {
+    return false;
+  }
+
+  try {
+    const db = new DatabaseSync(dbPath);
+    const tables = db
+      .prepare("SELECT name FROM sqlite_master WHERE type='table'")
+      .all()
+      .map((row) => String(row.name));
+    db.close();
+    return tables.includes("User") && tables.includes("UserSettings");
+  } catch {
+    return false;
+  }
+}
+
+function legacyDatabasePath() {
+  return path.resolve(process.cwd(), "dev.db");
+}
+
+function migrateLegacyDatabaseIfNeeded(targetDbPath) {
+  const legacyDbPath = legacyDatabasePath();
+
+  if (path.resolve(targetDbPath) === legacyDbPath) {
+    return;
+  }
+
+  if (hasRequiredTables(targetDbPath)) {
+    return;
+  }
+
+  if (hasRequiredTables(legacyDbPath)) {
+    fs.mkdirSync(path.dirname(targetDbPath), { recursive: true });
+    fs.copyFileSync(legacyDbPath, targetDbPath);
+  }
 }
 
 export function initDatabase(dbPath) {
@@ -134,5 +182,6 @@ export function initDatabase(dbPath) {
 
 export function ensureDatabaseInitialized(databaseUrl = getConfiguredDatabaseUrl()) {
   const dbPath = getDatabasePathFromUrl(databaseUrl);
+  migrateLegacyDatabaseIfNeeded(dbPath);
   return initDatabase(dbPath);
 }
