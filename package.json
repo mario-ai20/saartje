@@ -5,7 +5,9 @@
   "description": "Feline AI web app",
   "author": "Mattiz Hoornaert",
   "scripts": {
+    "predev": "node scripts/init-db.mjs",
     "dev": "next dev",
+    "prestart": "node scripts/init-db.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",

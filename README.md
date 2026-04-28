@@ -36,6 +36,8 @@ copy .env.example .env
 
 Als je de repo op een nieuwe computer zet, voer `git lfs install` dan zeker opnieuw uit voordat je de bestanden ophaalt.
 
+Na `npm install` wordt Prisma automatisch gegenereerd en de SQLite-database wordt bij het eerste gebruik ook automatisch aangemaakt als die nog ontbreekt. Je hoeft dus normaal geen extra database-stap meer te doen om een account te kunnen maken.
+
 ## Instellingen in `.env`
 
 Vul minstens deze waarden in:
@@ -54,6 +56,8 @@ OLLAMA_MODEL="llama3.1"
 npm run db:init
 npm run prisma:generate
 ```
+
+Dit blijft beschikbaar als je de database handmatig wil herstellen, maar voor een nieuwe installatie is het meestal niet meer nodig.
 
 ## Opstarten
 

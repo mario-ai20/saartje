@@ -18,6 +18,9 @@
 /out/
 
 # local database
+/dev.db
+/dev.db-journal
+/dev.db-shm
 /prisma/dev.db
 
 # production
