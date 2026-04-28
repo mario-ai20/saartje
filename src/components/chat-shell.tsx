@@ -190,6 +190,11 @@ type BackgroundCategory = {
   order: number;
 };
 
+type BuilderDiagnostic = {
+  label: string;
+  value: string;
+};
+
 const backgroundCategories: BackgroundCategory[] = [
   { key: "standaard", label: "Standaard", order: 0 },
   { key: "intens", label: "Intens", order: 1 },
@@ -198,6 +203,7 @@ const backgroundCategories: BackgroundCategory[] = [
   { key: "the moon", label: "The Moon", order: 4 },
   { key: "the earth", label: "The Earth", order: 5 },
   { key: "nsfw", label: "NSFW", order: 6 },
+  { key: "builder", label: "Builder", order: 7 },
   { key: "overig", label: "Overig", order: 99 },
 ];
 
@@ -240,6 +246,10 @@ function getBackgroundCategory(filePath: string): BackgroundCategory {
 
   if (categorySource.startsWith("nsfw")) {
     return backgroundCategories[6];
+  }
+
+  if (categorySource.startsWith("builder")) {
+    return backgroundCategories[7];
   }
 
   return backgroundCategories[7];
@@ -302,6 +312,8 @@ export function ChatShell({
   const [introSoundDurations, setIntroSoundDurations] = useState<Record<string, number | null>>({});
   const [builderNormalView, setBuilderNormalView] = useState(false);
   const [builderFps, setBuilderFps] = useState<number | null>(null);
+  const [builderFpsSmoothed, setBuilderFpsSmoothed] = useState<number | null>(null);
+  const [builderDiagnostics, setBuilderDiagnostics] = useState<BuilderDiagnostic[]>([]);
 
   const introAudioRef = useRef<HTMLAudioElement | null>(null);
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -317,6 +329,7 @@ export function ChatShell({
   const t = useMemo(() => getDictionary(settings.language), [settings.language]);
   const palette = themeStyles[settings.theme];
   const builderPreviewAll = isBuilder && !builderNormalView;
+  const builderMatrixActive = isBuilder && !builderNormalView;
 
   const selectedBackgroundImage =
     settings.backgroundImage &&
@@ -408,6 +421,33 @@ export function ChatShell({
       .sort((a, b) => a.order - b.order || a.label.localeCompare(b.label))
       .filter((section) => section.files.length > 0);
   }, [visibleBackgrounds]);
+
+  const builderBackgroundSections = useMemo(() => {
+    if (!isBuilder) {
+      return [];
+    }
+
+    return backgroundSections.filter((section) => section.label.toLowerCase().startsWith("builder"));
+  }, [backgroundSections, isBuilder]);
+
+  const builderBackgrounds = useMemo(
+    () => builderBackgroundSections.flatMap((section) => section.files),
+    [builderBackgroundSections],
+  );
+
+  const makeBuilderHex = useCallback((length: number) => {
+    const chars = "0123456789ABCDEF";
+    let out = "";
+    for (let i = 0; i < length; i += 1) {
+      out += chars[Math.floor(Math.random() * chars.length)] ?? "0";
+    }
+    return out;
+  }, []);
+
+  const makeBuilderCode = useCallback(
+    (prefix: string) => `${prefix}-${makeBuilderHex(4)}-${makeBuilderHex(4)}`,
+    [makeBuilderHex],
+  );
 
   const selectedLoginBackground = useMemo(
     () =>
@@ -529,7 +569,15 @@ export function ChatShell({
       const elapsed = now - lastSample;
 
       if (elapsed >= 1000) {
-        setBuilderFps(Math.round((frameCount * 1000) / elapsed));
+        const rawFps = Math.round((frameCount * 1000) / elapsed);
+        setBuilderFps(rawFps);
+        setBuilderFpsSmoothed((prev) => {
+          if (prev === null) {
+            return rawFps;
+          }
+
+          return Math.round(prev * 0.7 + rawFps * 0.3);
+        });
         frameCount = 0;
         lastSample = now;
       }
@@ -541,6 +589,29 @@ export function ChatShell({
 
     return () => window.cancelAnimationFrame(rafId);
   }, [isBuilder]);
+
+  useEffect(() => {
+    if (!isBuilder) {
+      return undefined;
+    }
+
+    const refreshDiagnostics = () => {
+      const now = new Date();
+      const sequence = [
+        { label: "SYS", value: makeBuilderCode("SYNC") },
+        { label: "DB", value: `${makeBuilderCode("DB")} / ${now.getSeconds().toString().padStart(2, "0")}s` },
+        { label: "ROUTE", value: makeBuilderCode("API") },
+        { label: "CACHE", value: makeBuilderCode("MEM") },
+        { label: "TRACE", value: `${makeBuilderCode("TRACE")} @ ${now.toLocaleTimeString("nl-BE", { hour12: false })}` },
+      ];
+
+      setBuilderDiagnostics(sequence);
+    };
+
+    refreshDiagnostics();
+    const timer = window.setInterval(refreshDiagnostics, 950);
+    return () => window.clearInterval(timer);
+  }, [isBuilder, makeBuilderCode]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -1200,6 +1271,25 @@ export function ChatShell({
         backgroundRepeat: backgroundImageUrl ? "no-repeat, no-repeat" : "no-repeat",
       }}
     >
+      {builderMatrixActive && (
+        <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(105,255,199,0.2),transparent_34%),linear-gradient(180deg,rgba(2,8,23,0.92),rgba(9,14,26,0.94))]" />
+          <div className="absolute inset-0 builder-code-grid opacity-65" />
+          <div className="absolute inset-0 builder-code-rain opacity-40" />
+          <div className="absolute left-4 top-4 flex flex-col gap-2 sm:left-6 sm:top-6">
+            {builderDiagnostics.map((item) => (
+              <div
+                key={item.label}
+                className="rounded-xl border border-emerald-300/25 bg-slate-950/55 px-3 py-2 text-[11px] text-emerald-100 shadow-2xl backdrop-blur-sm"
+              >
+                <div className="font-semibold tracking-[0.24em] text-emerald-300/80">{item.label}</div>
+                <div className="mt-1 font-mono text-[10px] leading-4 text-emerald-50/90">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {showIntroOverlay && (
         <div className="absolute inset-0 z-40 grid place-items-center bg-black/55 backdrop-blur-sm">
           <div className="flex flex-col items-center gap-4 rounded-3xl bg-black/45 px-8 py-7 text-white">
@@ -1317,7 +1407,7 @@ export function ChatShell({
         </aside>
 
         <section
-          className={`relative feline-rise flex min-h-[88vh] flex-col rounded-3xl ${palette.panel}`}
+          className={`relative z-10 feline-rise flex min-h-[88vh] flex-col rounded-3xl ${palette.panel}`}
           style={{ animationDelay: "100ms" }}
         >
           <header className="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
@@ -1328,8 +1418,8 @@ export function ChatShell({
 
             <div className="flex gap-2">
               {isBuilder && (
-                <span className="rounded-xl bg-black/70 px-3 py-2 text-sm font-semibold text-white">
-                  FPS {builderFps ?? "…"}
+                <span className="builder-fps-badge rounded-xl bg-black/70 px-3 py-2 text-sm font-semibold text-white">
+                  FPS {builderFpsSmoothed ?? builderFps ?? "…"}
                 </span>
               )}
               {isBuilder && (
@@ -1570,6 +1660,41 @@ export function ChatShell({
                       </button>
 
                       <div className="space-y-4">
+                        {builderBackgrounds.length > 0 && isBuilder && (
+                          <div className="rounded-2xl border border-dashed border-black/15 bg-white/70 p-3">
+                            <div className="mb-2 flex items-center justify-between">
+                              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-black/55">
+                                Builder achtergrond
+                              </p>
+                              <span className="text-xs text-black/45">{builderBackgrounds.length} items</span>
+                            </div>
+                            <div className="grid gap-2 sm:grid-cols-2">
+                              {builderBackgrounds.map((file) => {
+                                const selected = settings.backgroundImage === file;
+                                return (
+                                  <button
+                                    key={file}
+                                    type="button"
+                                    onClick={() => {
+                                      const next = { ...settings, backgroundImage: file };
+                                      setSettings(next);
+                                      void saveSettings(next);
+                                    }}
+                                    className={`rounded-xl border px-3 py-2 text-left text-sm transition ${
+                                      selected
+                                        ? "border-black/40 bg-black/10"
+                                        : "border-black/15 bg-white hover:bg-black/5"
+                                    }`}
+                                  >
+                                    <span className="block truncate">{getDisplayFileName(file)}</span>
+                                    {selected && <span className="mt-1 block text-xs font-semibold">Gekozen</span>}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+
                         {backgroundSections.map((section) => (
                           <div key={section.label} className="space-y-2">
                             <div className="flex items-center justify-between">
