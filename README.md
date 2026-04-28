@@ -51,7 +51,6 @@ OLLAMA_MODEL="llama3.1"
 ```
 
 Builder-toegang werkt apart van de gewone login. De nodige builder-gegevens krijg je privé van de beheerder.
-
 ## Database klaarzetten
 
 ```bash
