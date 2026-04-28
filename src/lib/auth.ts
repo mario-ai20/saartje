@@ -5,6 +5,8 @@ import { prisma } from "@/lib/prisma";
 import { verifyPassword } from "@/lib/password";
 
 const builderCode = process.env.BUILDER_CODE?.trim() ?? "";
+const builderUsername = process.env.BUILDER_USERNAME?.trim().toLowerCase() ?? "";
+const builderPassword = process.env.BUILDER_PASSWORD ?? "";
 const builderName = process.env.BUILDER_NAME?.trim() || "Feline Builder";
 const builderInternalUsername = "__builder__";
 
@@ -24,6 +26,18 @@ export const authOptions: NextAuthOptions = {
 
         if (submittedBuilderCode) {
           if (!builderCode || submittedBuilderCode !== builderCode) {
+            return null;
+          }
+
+          if (!builderUsername || !builderPassword) {
+            return null;
+          }
+
+          if (!username || !password) {
+            return null;
+          }
+
+          if (username !== builderUsername || password !== builderPassword) {
             return null;
           }
 

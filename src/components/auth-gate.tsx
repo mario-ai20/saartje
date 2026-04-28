@@ -25,9 +25,11 @@ type LoginFormState = {
 
 type BuilderFormState = {
   code: string;
+  username: string;
+  password: string;
 };
 
-type AuthView = "home" | "register" | "login" | "builder";
+type AuthView = "home" | "register" | "login" | "builder-code" | "builder-login";
 
 const defaultLoginIcon = "/intro-assets/feline%20kalebassen.jpg";
 function encodeAssetPath(assetPath: string): string {
@@ -90,6 +92,8 @@ export function AuthGate() {
   });
   const [builderForm, setBuilderForm] = useState<BuilderFormState>({
     code: "",
+    username: "",
+    password: "",
   });
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
@@ -124,7 +128,7 @@ export function AuthGate() {
     setRegisterMessage(null);
     setLoginError(null);
     setBuilderError(null);
-    setBuilderForm({ code: "" });
+    setBuilderForm({ code: "", username: "", password: "" });
   }
 
   const applyGitUpdate = useCallback(async () => {
@@ -267,7 +271,7 @@ export function AuthGate() {
     }
   }
 
-  async function handleBuilderUnlock(event: FormEvent<HTMLFormElement>) {
+  async function handleBuilderCodeSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
     setRegisterError(null);
@@ -284,13 +288,55 @@ export function AuthGate() {
     setIsUnlockingBuilder(true);
 
     try {
+      const response = await fetch("/api/builder/unlock", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ code }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        setBuilderError(payload?.error ?? "Onjuiste builder-code.");
+        return;
+      }
+
+      setView("builder-login");
+    } finally {
+      setIsUnlockingBuilder(false);
+    }
+  }
+
+  async function handleBuilderLogin(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setRegisterError(null);
+    setRegisterMessage(null);
+    setLoginError(null);
+    setBuilderError(null);
+
+    const code = builderForm.code.trim();
+    const username = builderForm.username.trim().toLowerCase();
+    const password = builderForm.password;
+
+    if (!code || !username || !password) {
+      setBuilderError("Vul de builder-code, gebruikersnaam en het wachtwoord in.");
+      return;
+    }
+
+    setIsUnlockingBuilder(true);
+
+    try {
       const result = await signIn("credentials", {
         redirect: false,
         builderCode: code,
+        username,
+        password,
       });
 
       if (result?.error) {
-        setBuilderError("Onjuiste builder-code.");
+        setBuilderError("Onjuiste builder-gegevens.");
         return;
       }
 
@@ -358,7 +404,7 @@ export function AuthGate() {
               </button>
               <button
                 type="button"
-                onClick={() => setView("builder")}
+                onClick={() => setView("builder-code")}
                 className="rounded-2xl bg-[#5a3f2f] px-5 py-4 text-xl font-semibold text-white shadow-xl transition hover:bg-[#432d21]"
               >
                 Builder code
@@ -392,10 +438,10 @@ export function AuthGate() {
           </div>
         )}
 
-        {view === "builder" && (
+        {view === "builder-code" && (
           <form
             onSubmit={(event) => {
-              void handleBuilderUnlock(event);
+              void handleBuilderCodeSubmit(event);
             }}
             className="relative mt-auto rounded-3xl border border-white/70 bg-white/90 p-6 pb-20 shadow-2xl backdrop-blur-sm"
           >
@@ -440,7 +486,78 @@ export function AuthGate() {
               disabled={isUnlockingBuilder}
               className="mt-4 w-full rounded-xl bg-[#5a3f2f] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#432d21] disabled:cursor-not-allowed disabled:bg-[#a78b7a]"
             >
-              {isUnlockingBuilder ? "Ontgrendelen..." : "Builder ontgrendelen"}
+              {isUnlockingBuilder ? "Controleren..." : "Code controleren"}
+            </button>
+          </form>
+        )}
+
+        {view === "builder-login" && (
+          <form
+            onSubmit={(event) => {
+              void handleBuilderLogin(event);
+            }}
+            className="relative mt-auto rounded-3xl border border-white/70 bg-white/90 p-6 pb-20 shadow-2xl backdrop-blur-sm"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-title text-3xl">Builder inloggen</h2>
+                <p className="mt-1 text-sm text-black/60">Voer nu je builder-account in om volledig toegang te krijgen.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setView("builder-code")}
+                className="rounded-lg border border-black/20 px-3 py-2 text-sm font-semibold hover:bg-black/5"
+              >
+                Terug
+              </button>
+            </div>
+
+            <div className="grid gap-3">
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Gebruikersnaam</span>
+                <input
+                  type="text"
+                  required
+                  value={builderForm.username}
+                  onChange={(event) =>
+                    setBuilderForm((prev) => ({
+                      ...prev,
+                      username: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#5a3f2f]/35 focus:ring"
+                />
+              </label>
+
+              <label className="text-sm">
+                <span className="mb-1 block font-semibold">Wachtwoord</span>
+                <input
+                  type="password"
+                  required
+                  value={builderForm.password}
+                  onChange={(event) =>
+                    setBuilderForm((prev) => ({
+                      ...prev,
+                      password: event.target.value,
+                    }))
+                  }
+                  className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#5a3f2f]/35 focus:ring"
+                />
+              </label>
+            </div>
+
+            {builderError && (
+              <p className="mt-3 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {builderError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isUnlockingBuilder}
+              className="mt-4 w-full rounded-xl bg-[#5a3f2f] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#432d21] disabled:cursor-not-allowed disabled:bg-[#a78b7a]"
+            >
+              {isUnlockingBuilder ? "Inloggen..." : "Builder inloggen"}
             </button>
           </form>
         )}
