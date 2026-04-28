@@ -301,6 +301,7 @@ export function ChatShell({
   const [backgroundSoundFilter, setBackgroundSoundFilter] = useState("");
   const [introSoundDurations, setIntroSoundDurations] = useState<Record<string, number | null>>({});
   const [builderNormalView, setBuilderNormalView] = useState(false);
+  const [builderFps, setBuilderFps] = useState<number | null>(null);
 
   const introAudioRef = useRef<HTMLAudioElement | null>(null);
   const bgAudioRef = useRef<HTMLAudioElement | null>(null);
@@ -513,6 +514,33 @@ export function ChatShell({
   useEffect(() => {
     document.documentElement.lang = settings.language.toLowerCase();
   }, [settings.language]);
+
+  useEffect(() => {
+    if (!isBuilder) {
+      return undefined;
+    }
+
+    let rafId = 0;
+    let frameCount = 0;
+    let lastSample = performance.now();
+
+    const tick = (now: number) => {
+      frameCount += 1;
+      const elapsed = now - lastSample;
+
+      if (elapsed >= 1000) {
+        setBuilderFps(Math.round((frameCount * 1000) / elapsed));
+        frameCount = 0;
+        lastSample = now;
+      }
+
+      rafId = window.requestAnimationFrame(tick);
+    };
+
+    rafId = window.requestAnimationFrame(tick);
+
+    return () => window.cancelAnimationFrame(rafId);
+  }, [isBuilder]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -1299,6 +1327,11 @@ export function ChatShell({
             </div>
 
             <div className="flex gap-2">
+              {isBuilder && (
+                <span className="rounded-xl bg-black/70 px-3 py-2 text-sm font-semibold text-white">
+                  FPS {builderFps ?? "…"}
+                </span>
+              )}
               {isBuilder && (
                 <button
                   type="button"

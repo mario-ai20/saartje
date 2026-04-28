@@ -145,13 +145,18 @@ export async function POST(
   }
 
   const settings = await ensureUserSettings(currentUser.id);
+  const isBuilder = currentUser.role === "builder";
 
   const thread = await prisma.chatThread.findFirst({
-    where: {
-      id: chatId,
-      userId: currentUser.id,
-      isNsfw: settings.nsfwPlusEnabled,
-    },
+    where: isBuilder
+      ? {
+          id: chatId,
+        }
+      : {
+          id: chatId,
+          userId: currentUser.id,
+          isNsfw: settings.nsfwPlusEnabled,
+        },
     select: {
       id: true,
       title: true,

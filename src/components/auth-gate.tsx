@@ -23,7 +23,11 @@ type LoginFormState = {
   password: string;
 };
 
-type AuthView = "home" | "register" | "login";
+type BuilderFormState = {
+  code: string;
+};
+
+type AuthView = "home" | "register" | "login" | "builder";
 
 const defaultLoginIcon = "/intro-assets/feline%20kalebassen.jpg";
 function encodeAssetPath(assetPath: string): string {
@@ -84,11 +88,16 @@ export function AuthGate() {
     username: "",
     password: "",
   });
+  const [builderForm, setBuilderForm] = useState<BuilderFormState>({
+    code: "",
+  });
   const [registerError, setRegisterError] = useState<string | null>(null);
   const [registerMessage, setRegisterMessage] = useState<string | null>(null);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [builderError, setBuilderError] = useState<string | null>(null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isLoggingIn, setIsLoggingIn] = useState(false);
+  const [isUnlockingBuilder, setIsUnlockingBuilder] = useState(false);
   const [gitUpdateStatus, setGitUpdateStatus] = useState<{
     available: boolean;
     branch: string | null;
@@ -114,6 +123,8 @@ export function AuthGate() {
     setRegisterError(null);
     setRegisterMessage(null);
     setLoginError(null);
+    setBuilderError(null);
+    setBuilderForm({ code: "" });
   }
 
   const applyGitUpdate = useCallback(async () => {
@@ -256,6 +267,39 @@ export function AuthGate() {
     }
   }
 
+  async function handleBuilderUnlock(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    setRegisterError(null);
+    setRegisterMessage(null);
+    setLoginError(null);
+    setBuilderError(null);
+
+    const code = builderForm.code.trim();
+    if (!code) {
+      setBuilderError("Vul de builder-code in.");
+      return;
+    }
+
+    setIsUnlockingBuilder(true);
+
+    try {
+      const result = await signIn("credentials", {
+        redirect: false,
+        builderCode: code,
+      });
+
+      if (result?.error) {
+        setBuilderError("Onjuiste builder-code.");
+        return;
+      }
+
+      window.location.reload();
+    } finally {
+      setIsUnlockingBuilder(false);
+    }
+  }
+
   return (
     <main
       className="relative min-h-screen overflow-hidden bg-[#0d1018] px-4 py-6 text-[#2f1c1a]"
@@ -297,7 +341,7 @@ export function AuthGate() {
 
         {view === "home" && (
           <div className="mt-auto pb-2">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-3">
               <button
                 type="button"
                 onClick={() => setView("register")}
@@ -311,6 +355,13 @@ export function AuthGate() {
                 className="rounded-2xl bg-[#1f2937] px-5 py-4 text-xl font-semibold text-white shadow-xl transition hover:bg-[#111827]"
               >
                 Inloggen
+              </button>
+              <button
+                type="button"
+                onClick={() => setView("builder")}
+                className="rounded-2xl bg-[#5a3f2f] px-5 py-4 text-xl font-semibold text-white shadow-xl transition hover:bg-[#432d21]"
+              >
+                Builder code
               </button>
             </div>
 
@@ -339,6 +390,59 @@ export function AuthGate() {
             {gitUpdateMessage && <p className="mt-2 text-right text-[11px] text-emerald-700">{gitUpdateMessage}</p>}
             {gitUpdateError && <p className="mt-2 text-right text-[11px] text-red-700">{gitUpdateError}</p>}
           </div>
+        )}
+
+        {view === "builder" && (
+          <form
+            onSubmit={(event) => {
+              void handleBuilderUnlock(event);
+            }}
+            className="relative mt-auto rounded-3xl border border-white/70 bg-white/90 p-6 pb-20 shadow-2xl backdrop-blur-sm"
+          >
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <div>
+                <h2 className="font-title text-3xl">Builder code</h2>
+                <p className="mt-1 text-sm text-black/60">Vul je geheime code in om builder-modus te openen.</p>
+              </div>
+              <button
+                type="button"
+                onClick={goToHome}
+                className="rounded-lg border border-black/20 px-3 py-2 text-sm font-semibold hover:bg-black/5"
+              >
+                Terug
+              </button>
+            </div>
+
+            <label className="text-sm">
+              <span className="mb-1 block font-semibold">Builder code</span>
+              <input
+                type="password"
+                required
+                value={builderForm.code}
+                onChange={(event) =>
+                  setBuilderForm((prev) => ({
+                    ...prev,
+                    code: event.target.value,
+                  }))
+                }
+                className="w-full rounded-xl border border-[#d7c4bd] bg-white px-3 py-2 outline-none ring-[#5a3f2f]/35 focus:ring"
+              />
+            </label>
+
+            {builderError && (
+              <p className="mt-3 rounded-xl border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
+                {builderError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isUnlockingBuilder}
+              className="mt-4 w-full rounded-xl bg-[#5a3f2f] px-4 py-3 text-lg font-semibold text-white transition hover:bg-[#432d21] disabled:cursor-not-allowed disabled:bg-[#a78b7a]"
+            >
+              {isUnlockingBuilder ? "Ontgrendelen..." : "Builder ontgrendelen"}
+            </button>
+          </form>
         )}
 
         {view === "register" && (

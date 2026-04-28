@@ -20,13 +20,18 @@ export async function GET(
 
   const { chatId } = await context.params;
   const settings = await ensureUserSettings(currentUser.id);
+  const isBuilder = currentUser.role === "builder";
 
   const thread = await prisma.chatThread.findFirst({
-    where: {
-      id: chatId,
-      userId: currentUser.id,
-      isNsfw: settings.nsfwPlusEnabled,
-    },
+    where: isBuilder
+      ? {
+          id: chatId,
+        }
+      : {
+          id: chatId,
+          userId: currentUser.id,
+          isNsfw: settings.nsfwPlusEnabled,
+        },
     include: {
       messages: {
         orderBy: { createdAt: "asc" },
@@ -58,13 +63,18 @@ export async function DELETE(
 
   const { chatId } = await context.params;
   const settings = await ensureUserSettings(currentUser.id);
+  const isBuilder = currentUser.role === "builder";
 
   const existing = await prisma.chatThread.findFirst({
-    where: {
-      id: chatId,
-      userId: currentUser.id,
-      isNsfw: settings.nsfwPlusEnabled,
-    },
+    where: isBuilder
+      ? {
+          id: chatId,
+        }
+      : {
+          id: chatId,
+          userId: currentUser.id,
+          isNsfw: settings.nsfwPlusEnabled,
+        },
     select: {
       id: true,
     },

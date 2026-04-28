@@ -5,7 +5,7 @@ import { hashPassword } from "@/lib/password";
 
 export const runtime = "nodejs";
 
-const builderUsername = process.env.BUILDER_USERNAME?.trim().toLowerCase() ?? "";
+const builderInternalUsername = "__builder__";
 
 type RegisterInput = {
   firstName?: string;
@@ -54,7 +54,7 @@ export async function POST(request: Request) {
 
   const username = usernameRaw.toLowerCase();
 
-  if (builderUsername && username === builderUsername) {
+  if (username === builderInternalUsername) {
     return badRequest("Deze username is gereserveerd.");
   }
 

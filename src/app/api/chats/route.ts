@@ -17,28 +17,46 @@ export async function GET(request: Request) {
   }
 
   const settings = await ensureUserSettings(currentUser.id);
+  const isBuilder = currentUser.role === "builder";
   const { searchParams } = new URL(request.url);
   const query = searchParams.get("query")?.trim() ?? "";
 
   const threads = await prisma.chatThread.findMany({
-    where: {
-      userId: currentUser.id,
-      isNsfw: settings.nsfwPlusEnabled,
-      ...(query
-        ? {
-            OR: [
-              { title: { contains: query } },
-              {
-                messages: {
-                  some: {
-                    content: { contains: query },
+    where: isBuilder
+      ? {
+          ...(query
+            ? {
+                OR: [
+                  { title: { contains: query } },
+                  {
+                    messages: {
+                      some: {
+                        content: { contains: query },
+                      },
+                    },
                   },
-                },
-              },
-            ],
-          }
-        : {}),
-    },
+                ],
+              }
+            : {}),
+        }
+      : {
+          userId: currentUser.id,
+          isNsfw: settings.nsfwPlusEnabled,
+          ...(query
+            ? {
+                OR: [
+                  { title: { contains: query } },
+                  {
+                    messages: {
+                      some: {
+                        content: { contains: query },
+                      },
+                    },
+                  },
+                ],
+              }
+            : {}),
+        },
     orderBy: { updatedAt: "desc" },
     take: 40,
     select: {
