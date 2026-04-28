@@ -50,7 +50,7 @@ OLLAMA_URL="http://127.0.0.1:11434"
 OLLAMA_MODEL="llama3.1"
 ```
 
-Builder-toegang werkt apart van de gewone login. De nodige builder-gegevens krijg je privé van de beheerder.
+Builder-instellingen staan apart in de map `builder/`. Kopieer de waarden uit `builder/builder.env.example` naar je lokale `.env` als je builder mode wil gebruiken.
 ## Database klaarzetten
 
 ```bash

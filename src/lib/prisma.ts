@@ -1,3 +1,4 @@
+import "@/lib/runtime-env.mjs";
 import { PrismaClient } from "@prisma/client";
 import { ensureDatabaseInitialized, getConfiguredDatabaseUrl } from "@/lib/sqlite-schema.mjs";
 

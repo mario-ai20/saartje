@@ -1,5 +1,6 @@
 import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
+import "../src/lib/runtime-env.mjs";
 import { ensureDatabaseInitialized, getConfiguredDatabaseUrl } from "../src/lib/sqlite-schema.mjs";
 
 const isMain = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
