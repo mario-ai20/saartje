@@ -44,6 +44,18 @@ type Assets = {
   backgroundSounds: string[];
 };
 
+type GitUpdateStatus = {
+  available: boolean;
+  branch: string | null;
+  head: string | null;
+  remoteHead: string | null;
+  behind: number;
+  ahead: number;
+  dirty: boolean;
+  canUpdate: boolean;
+  reason: string | null;
+};
+
 type DetectedFace = {
   boundingBox: {
     width: number;
@@ -264,6 +276,10 @@ export function ChatShell({
   const [showNsfwVerifyModal, setShowNsfwVerifyModal] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved">("idle");
   const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [gitUpdateStatus, setGitUpdateStatus] = useState<GitUpdateStatus | null>(null);
+  const [gitUpdateLoading, setGitUpdateLoading] = useState(false);
+  const [gitUpdateError, setGitUpdateError] = useState<string | null>(null);
+  const [gitUpdateMessage, setGitUpdateMessage] = useState<string | null>(null);
   const [nsfwBirthDateCheck, setNsfwBirthDateCheck] = useState("");
   const [nsfwFaceVerified, setNsfwFaceVerified] = useState(false);
   const [nsfwSelfieDataUrl, setNsfwSelfieDataUrl] = useState<string | null>(null);
@@ -585,6 +601,83 @@ export function ChatShell({
       // Keep existing lists if refresh fails.
     }
   }, []);
+
+  const refreshGitUpdateStatus = useCallback(async () => {
+    setGitUpdateLoading(true);
+    setGitUpdateError(null);
+    setGitUpdateMessage(null);
+
+    try {
+      const response = await fetch("/api/update", {
+        method: "GET",
+        cache: "no-store",
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { status?: GitUpdateStatus; error?: string }
+        | null;
+
+      if (!response.ok) {
+        setGitUpdateError(payload?.error ?? "GitHub-status kon niet worden opgehaald.");
+        return;
+      }
+
+      if (payload?.status) {
+        setGitUpdateStatus(payload.status);
+      }
+    } catch {
+      setGitUpdateError("GitHub-status kon niet worden opgehaald.");
+    } finally {
+      setGitUpdateLoading(false);
+    }
+  }, []);
+
+  const applyGitUpdate = useCallback(async () => {
+    setGitUpdateLoading(true);
+    setGitUpdateError(null);
+    setGitUpdateMessage(null);
+
+    try {
+      const response = await fetch("/api/update", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      const payload = (await response.json().catch(() => null)) as
+        | { status?: GitUpdateStatus; output?: string; error?: string }
+        | null;
+
+      if (!response.ok) {
+        setGitUpdateError(payload?.error ?? "Update kon niet worden uitgevoerd.");
+        return;
+      }
+
+      if (payload?.status) {
+        setGitUpdateStatus(payload.status);
+      }
+
+      setGitUpdateMessage(payload?.output ?? "Update voltooid.");
+      window.setTimeout(() => window.location.reload(), 1200);
+    } catch {
+      setGitUpdateError("Update kon niet worden uitgevoerd.");
+    } finally {
+      setGitUpdateLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!showSettings) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void refreshGitUpdateStatus();
+    }, 0);
+
+    return () => window.clearTimeout(timer);
+  }, [refreshGitUpdateStatus, showSettings]);
 
   const ensureFaceDetector = useCallback((): FaceDetectorLike | null => {
     if (nsfwFaceDetectorRef.current) {
@@ -1851,6 +1944,68 @@ export function ChatShell({
                     />
                     <span>{t.parentalControl}</span>
                   </label>
+
+                  <div className="rounded-lg border border-black/10 bg-white p-3 text-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-semibold">GitHub updates</p>
+                        <p className="text-xs text-black/60">
+                          Haal nieuwe commits uit GitHub binnen in deze lokale installatie.
+                          Je lokale data en mediabestanden worden eerst geback-upt.
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void refreshGitUpdateStatus();
+                        }}
+                        className="rounded-lg border border-black/15 px-3 py-2 text-xs font-semibold hover:bg-black/5"
+                        disabled={gitUpdateLoading}
+                      >
+                        Vernieuwen
+                      </button>
+                    </div>
+
+                    {gitUpdateStatus && (
+                      <div className="mt-3 space-y-1 text-xs text-black/70">
+                        <p>
+                          Branch: <span className="font-semibold">{gitUpdateStatus.branch ?? "onbekend"}</span>
+                        </p>
+                        <p>
+                          Status:{" "}
+                          <span className="font-semibold">
+                            {gitUpdateStatus.behind > 0
+                              ? `${gitUpdateStatus.behind} update(s) beschikbaar`
+                              : "bijgewerkt"}
+                          </span>
+                        </p>
+                        <p>
+                          Werkmap:{" "}
+                          <span className="font-semibold">
+                            {gitUpdateStatus.dirty ? "lokale wijzigingen aanwezig" : "schoon"}
+                          </span>
+                        </p>
+                        {gitUpdateStatus.reason && <p className="text-black/55">{gitUpdateStatus.reason}</p>}
+                        <p className="text-black/55">
+                          Accounts, chats en eigen media blijven lokaal bewaard; de update maakt eerst een backup.
+                        </p>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        void applyGitUpdate();
+                      }}
+                      disabled={gitUpdateLoading || !gitUpdateStatus?.canUpdate}
+                      className="mt-3 w-full rounded-lg bg-black px-3 py-2 font-semibold text-white disabled:cursor-not-allowed disabled:bg-black/30"
+                    >
+                      {gitUpdateLoading ? "Bezig..." : "Update vanuit GitHub"}
+                    </button>
+
+                    {gitUpdateMessage && <p className="mt-2 text-xs text-emerald-700">{gitUpdateMessage}</p>}
+                    {gitUpdateError && <p className="mt-2 text-xs text-red-700">{gitUpdateError}</p>}
+                  </div>
 
                   {settingsError && (
                     <p className="rounded-lg border border-red-300 bg-red-50 px-3 py-2 text-sm text-red-700">
